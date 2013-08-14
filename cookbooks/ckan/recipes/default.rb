@@ -44,7 +44,7 @@ python_pip SOURCE_DIR do
 end
 
 # Install CKAN's requirements
-python_pip "#{SOURCE_DIR}/pip-requirements.txt" do
+python_pip "#{SOURCE_DIR}/requirements.txt" do
   user USER
   group USER
   virtualenv ENV['VIRTUAL_ENV']
@@ -58,14 +58,14 @@ pg_user "ckanuser" do
   password "pass"
 end
 
-pg_database "ckantest" do
+pg_database "ckan_test" do
   encoding    "utf8"
   locale      "en_US.utf8"
   owner       "ckanuser"
   template    "template0"
 end
 
-pg_database "ckan_dev" do
+pg_database "ckan_default" do
   encoding    "utf8"
   locale      "en_US.utf8"
   owner       "ckanuser"
@@ -110,7 +110,7 @@ execute "make paster's config file and setup solr_url and ckan.site_id" do
   user USER
   cwd SOURCE_DIR
 
-  command "paster make-config ckan #{node[:environment]}.ini --no-interactive && sed -i -e 's/.*solr_url.*/solr_url=http:\\/\\/127.0.0.1:8983\\/solr/;s/.*ckan\\.site_id.*/ckan.site_id=vagrant_ckan/#{filestore_ini_changes}' #{node[:environment]}.ini"
+  command "paster make-config ckan #{node[:environment]}.ini --no-interactive && sed -i -e 's/.*solr_url.*/solr_url=http:\\/\\/127.0.0.1:8983\\/solr/;s/.*ckan\\.site_id.*/ckan.site_id=vagrant_ckan/#{filestore_ini_changes};s/.*cache_dir.*/cache_dir=\\/tmp\\/$(ckan.site_id)s\\/' #{node[:environment]}.ini"
   creates "#{SOURCE_DIR}/#{node[:environment]}.ini"
 end
 
@@ -152,7 +152,7 @@ execute "Enable the ckan sites" do
 end
 
 # Run tests
-python_pip "#{SOURCE_DIR}/pip-requirements-test.txt" do
+python_pip "#{SOURCE_DIR}/dev-requirements.txt" do
   user USER
   group USER
   virtualenv ENV['VIRTUAL_ENV']
@@ -160,9 +160,9 @@ python_pip "#{SOURCE_DIR}/pip-requirements-test.txt" do
   action :install
 end
 
-execute "running tests with SQLite" do
+execute "running tests with Postgres" do
   user USER
   cwd SOURCE_DIR
-  command "nosetests --ckan ckan"
+  command "nosetests --ckan --with-pylons=test-core.ini ckan ckanext"
 end
 
