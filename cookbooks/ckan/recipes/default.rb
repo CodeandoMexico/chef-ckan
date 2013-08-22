@@ -79,10 +79,12 @@ template "/etc/default/jetty" do
     :java_home => node["java"]["java_home"]
   })
 end
+
 execute "setup solr's schema" do
   command "sudo ln -f -s #{SOURCE_DIR}/ckan/config/solr/schema-2.0.xml /etc/solr/conf/schema.xml"
   action :run
 end
+
 service "jetty" do
   supports :status => true, :restart => true, :reload => true
   action [:enable, :start]
@@ -110,8 +112,16 @@ execute "make paster's config file and setup solr_url and ckan.site_id" do
   user USER
   cwd SOURCE_DIR
 
-  command "paster make-config ckan #{node[:environment]}.ini --no-interactive && sed -i -e 's/.*solr_url.*/solr_url=http:\\/\\/127.0.0.1:8983\\/solr/;s/.*ckan\\.site_id.*/ckan.site_id=vagrant_ckan/#{filestore_ini_changes};s/.*cache_dir.*/cache_dir=\\/tmp\\/$(ckan.site_id)s\\/' #{node[:environment]}.ini"
+  command "paster make-config ckan #{node[:environment]}.ini --no-interactive && sed -i -e 's/.*solr_url.*/solr_url=http:\\/\\/127.0.0.1:8983\\/solr/;s/.*ckan\\.site_id.*/ckan.site_id=vagrant_ckan/#{filestore_ini_changes};s/.*cache_dir.*/cache_dir=\\/tmp\\/$(ckan.site_id)s\\//' #{node[:environment]}.ini"
   creates "#{SOURCE_DIR}/#{node[:environment]}.ini"
+end
+
+# Give ckanuser sqlalchemy permission in configuration
+execute "give ckanuser sqlalchemy.url permission on config file" do
+  user USER
+  cwd SOURCE_DIR
+
+  command "sed -i -e 's/.*sqlalchemy\\.url.=.postgresql.*/sqlalchemy.url=postgresql:\\/\\/ckanuser:pass@localhost\\/ckan_default/' #{node[:environment]}.ini"
 end
 
 # Generate database
@@ -163,6 +173,5 @@ end
 execute "running tests with Postgres" do
   user USER
   cwd SOURCE_DIR
-  command "nosetests --ckan --with-pylons=test-core.ini ckan ckanext"
+  command "nosetests --ckan --with-pylons=test-core.ini --nologcapture ckan ckanext"
 end
-

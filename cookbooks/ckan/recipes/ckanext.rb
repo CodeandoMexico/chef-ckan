@@ -22,6 +22,12 @@ pg_database "datastore" do
   template    "template0"
 end
 
+execute "activate datastore plugin in config file" do
+  user USER
+  cwd SOURCE_DIR
+  command "sed -i -e 's/.*ckan\\.plugins.*/& datastore/' #{node[:environment]}.ini"
+end
+
 # Configure database variables
 execute "Set up datastore database's urls" do
   user USER
