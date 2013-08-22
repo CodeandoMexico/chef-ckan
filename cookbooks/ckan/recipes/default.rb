@@ -124,6 +124,14 @@ execute "give ckanuser sqlalchemy.url permission on config file" do
   command "sed -i -e 's/.*sqlalchemy\\.url.=.postgresql.*/sqlalchemy.url=postgresql:\\/\\/ckanuser:pass@localhost\\/ckan_default/' #{node[:environment]}.ini"
 end
 
+# Give ckanuser sqlalchemy permission in test configuration
+execute "give ckanuser sqlalchemy.url permission on test config file" do
+  user USER
+  cwd SOURCE_DIR
+
+  command "sed -i -e 's/.*sqlalchemy\\.url.=.postgresql.*/sqlalchemy.url=postgresql:\\/\\/ckanuser:pass@localhost\\/ckan_test/' test-core.ini"
+end
+
 # Generate database
 execute "create database tables" do
   user USER
